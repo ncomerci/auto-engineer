@@ -1,6 +1,6 @@
 # Tracker playbook — GitHub Issues
 
-This project tracks work as GitHub Issues in `{{GITHUB_OWNER}}/{{GITHUB_REPO}}`. Every skill that touches issues (`file-issue`, `auto-engineer`, `auto-manager`) calls the operations below instead of invoking `gh`/`mcp__github__*` directly.
+This project tracks work as GitHub Issues in `{{GITHUB_OWNER}}/{{GITHUB_REPO}}`. Every skill that touches issues (`file-issue`, `auto-engineer`, `auto-manager`) calls the operations below instead of invoking `gh` ad hoc.
 
 ## Issue identity
 
@@ -28,22 +28,14 @@ gh issue view <N> --json number,title,body,labels,state,assignees,comments
 
 Used by `file-issue` to dedupe before creating.
 
-```
-mcp__github__search_issues(
-  query="repo:{{GITHUB_OWNER}}/{{GITHUB_REPO}} is:open <keywords>"
-)
+```sh
+gh issue list --search "repo:{{GITHUB_OWNER}}/{{GITHUB_REPO}} is:open <keywords>" --json number,title,state
 ```
 
 ### create_issue `<title> <body> <labels...>`
 
-```
-mcp__github__create_issue(
-  owner="{{GITHUB_OWNER}}",
-  repo="{{GITHUB_REPO}}",
-  title="<title>",
-  body="<body>",
-  labels=["priority:PN", ...]
-)
+```sh
+gh issue create --title "<title>" --body "<body>" --label "priority:P1" --label "bug"
 ```
 
 Returns the issue number + URL.
@@ -62,13 +54,8 @@ gh issue edit <N> --add-label "<label>"
 
 ### comment_on_issue `<N> <text>`
 
-```
-mcp__github__add_issue_comment(
-  owner="{{GITHUB_OWNER}}",
-  repo="{{GITHUB_REPO}}",
-  issue_number=<N>,
-  body="<text>"
-)
+```sh
+gh issue comment <N> --body "<text>"
 ```
 
 ### close_issue `<N>` [comment]

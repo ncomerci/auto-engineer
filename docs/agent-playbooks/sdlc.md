@@ -18,7 +18,7 @@ git checkout -b <branch>
 - Group related changes into coherent commits — not one mega-commit, not micro-commits.
 - Every commit includes the trailer:
   ```
-  Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+  Co-Authored-By: Cursor <noreply@cursor.com>
   ```
 - Never commit directly to `main`.
 
@@ -36,7 +36,7 @@ Standard body structure:
 Closes #<N>
 ```
 
-- Open via `mcp__github__create_pull_request`.
+- Open via `gh pr create`.
 - No "generated with Claude" footer.
 - Always include `Closes #<N>` to auto-close the issue on squash-merge.
 
@@ -47,11 +47,11 @@ This repo is a toolkit factory. Most skills have two copies:
 | Path | What it is |
 |------|------------|
 | `templates/skills/<skill>/SKILL.md` | Canonical source shipped to user projects via `seed` |
-| `.claude/skills/<skill>/SKILL.md` | Local instance used to develop this repo |
+| `.cursor/skills/<skill>/SKILL.md` | Local harness copy used to develop this repo |
 
-**Issues and feature work always target `templates/`.** Only touch `.claude/skills/` when the task is explicitly about the development harness itself.
+**Issues and feature work always target `templates/`.** Only touch `.cursor/skills/` when the task is explicitly about the development harness itself (`seed`, `sync`).
 
-**Exception — `seed`:** The seed skill does not seed itself. Its source lives at `.claude/skills/seed/SKILL.md` with no `templates/` counterpart. Issue work targeting seed goes there.
+**Exception — `seed` / `sync`:** Not copied from `templates/skills/`. They live only under `.cursor/skills/` in this repo.
 
 ## Merge policy
 

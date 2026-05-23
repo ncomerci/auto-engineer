@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# Launch the project's auto-engineer container and pass all arguments to claude.
+# Launch the auto-engineer harness container (Cursor Agent CLI).
 #
 # Usage:
-#   scripts/sandbox.sh                    # run default CMD (/auto-engineer)
-#   scripts/sandbox.sh --build-only       # build the image without running
-#   scripts/sandbox.sh /some-skill        # run a specific skill
-#   scripts/sandbox.sh -- <claude args>   # pass arbitrary args to claude
+#   scripts/sandbox.sh                      # orchestrate loop (/auto-engineer)
+#   scripts/sandbox.sh --build-only
+#   scripts/sandbox.sh /some-skill            # one tick (--once)
+#   scripts/sandbox.sh --direct /seed       # single agent -p
 #
-# Reads .env from the repo root if present.
-# Mounts ~/.claude so the container reuses your host Claude Code login.
+# Reads .env from the repo root if present (CURSOR_API_KEY, GITHUB_TOKEN).
 set -euo pipefail
 
 IMAGE="${PROJECT_IMAGE:-auto-engineer-auto-engineer}"
@@ -30,68 +29,35 @@ if [ -f "$REPO_ROOT/.env" ]; then
     set +a
 fi
 
-# Verify Docker daemon is reachable before attempting any docker command.
-if ! docker info >/dev/null 2>&1; then
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "error: docker is not installed - install Docker from https://docs.docker.com/get-docker/" >&2
-    elif [ "$(uname -s)" = "Darwin" ]; then
-        echo "error: Docker daemon is not running - start Docker Desktop (open the app or run: open -a Docker; if it is starting, wait a moment and retry)" >&2
-    else
-        echo "error: Docker daemon is not running - try: sudo systemctl start docker (or your init system's equivalent)" >&2
-    fi
-    exit 1
-fi
-
 docker build -t "$IMAGE" -f "$REPO_ROOT/Dockerfile" "$REPO_ROOT"
 
 if [ "$build_only" -eq 1 ]; then
     exit 0
 fi
 
-if [ ! -d "$HOME/.claude" ] || [ ! -f "$HOME/.claude.json" ]; then
-    echo "error: $HOME/.claude or $HOME/.claude.json missing — log in to Claude Code on the host first" >&2
+if [ -z "${CURSOR_API_KEY:-}" ]; then
+    echo "error: CURSOR_API_KEY is not set — add it to .env or export it" >&2
+    exit 1
+fi
+
+if [ -z "${GITHUB_TOKEN:-}" ]; then
+    echo "error: GITHUB_TOKEN is not set — add it to .env or export it" >&2
     exit 1
 fi
 
 docker_sec_opts=()
 if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce 2>/dev/null)" != "Disabled" ]; then
-    # Host is SELinux-enforcing (e.g. Fedora). Disable MAC for this container
-    # so the mounted ~/.claude auth files are readable. We don't use :z/:Z to
-    # avoid relabeling files the host needs.
     docker_sec_opts+=(--security-opt label=disable)
 fi
 
-# On macOS, Docker Desktop runs containers in a Linux VM so host UIDs don't
-# map into the container. The OAuth token also lives in the macOS Keychain,
-# not in .claude.json, so we extract it and pass it via env var.
-claude_vol_opts=()
-if [ "$(uname -s)" = "Darwin" ]; then
-    _keychain_json="$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null || true)"
-    CLAUDE_CODE_OAUTH_TOKEN="$(echo "$_keychain_json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['claudeAiOauth']['accessToken'])" 2>/dev/null || true)"
-    if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
-        echo "error: could not read Claude OAuth token from Keychain — log in to Claude Code on the host first" >&2
-        exit 1
-    fi
-    claude_vol_opts+=(
-        -v "$HOME/.claude:/home/agent/.claude-host:ro"
-        -v "$HOME/.claude.json:/home/agent/.claude-host.json:ro"
-        -e CLAUDE_AUTH_STAGE=1
-        -e "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN"
-    )
-else
-    claude_vol_opts+=(
-        -v "$HOME/.claude:/home/agent/.claude"
-        -v "$HOME/.claude.json:/home/agent/.claude.json"
-    )
+cursor_vol_opts=()
+if [ -d "$REPO_ROOT/.cursor" ]; then
+    cursor_vol_opts+=(-v "$REPO_ROOT/.cursor:/home/agent/work/.cursor:ro")
+fi
+if [ -f "$HOME/.cursor/mcp.json" ]; then
+    cursor_vol_opts+=(-v "$HOME/.cursor/mcp.json:/home/agent/.cursor/mcp.json:ro")
 fi
 
-# If we're inside tmux, disable automatic-rename on the current window so the
-# name the agent chooses isn't immediately overwritten by tmux's
-# pane_current_command heuristic. Start a background poller that watches a
-# shared slug file the container writes to, and renames the host tmux window
-# accordingly — Claude's Bash tool has no controlling terminal inside the
-# container, so OSC 2 via /dev/tty doesn't work; a shared file is the reliable
-# cross-boundary signal. Restore on exit.
 tmux_slug_vol_opts=()
 slug_file=""
 poller_pid=""
@@ -127,13 +93,20 @@ if [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
     ' EXIT
 fi
 
+docker_args=("$@")
+if [ ${#docker_args[@]} -eq 0 ]; then
+    docker_args=(/auto-engineer --iteration 1)
+elif [ "${docker_args[0]}" != --once ] && [ "${docker_args[0]}" != --direct ] && [[ "${docker_args[0]}" != /* ]]; then
+    docker_args=(--once "${docker_args[@]}")
+fi
+
 docker run --rm -it \
     ${docker_sec_opts[@]+"${docker_sec_opts[@]}"} \
-    "${claude_vol_opts[@]}" \
+    "${cursor_vol_opts[@]}" \
     ${tmux_slug_vol_opts[@]+"${tmux_slug_vol_opts[@]}"} \
     -e GITHUB_TOKEN \
-    -e ANTHROPIC_API_KEY \
+    -e CURSOR_API_KEY \
     -e GIT_AUTHOR_NAME \
     -e GIT_AUTHOR_EMAIL \
     -e PROJECT_REPO \
-    "$IMAGE" "$@"
+    "$IMAGE" "${docker_args[@]}"

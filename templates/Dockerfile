@@ -13,9 +13,7 @@ RUN apt-get update \
  && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
         > /etc/apt/sources.list.d/github-cli.list \
- && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
- && apt-get install -y --no-install-recommends gh nodejs \
- && npm install -g @anthropic-ai/claude-code \
+ && apt-get install -y --no-install-recommends gh \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -24,6 +22,8 @@ RUN if id -u ubuntu >/dev/null 2>&1; then userdel --remove ubuntu; fi \
  && echo "agent ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/agent
 
 USER agent
+RUN curl -fsSL https://cursor.com/install | bash
+
 ENV HOME=/home/agent \
     PATH=/home/agent/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -34,7 +34,12 @@ ENV HOME=/home/agent \
 
 WORKDIR /home/agent/work
 
+USER root
 COPY --chown=root:root scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chown=root:root scripts/orchestrate.sh /usr/local/bin/orchestrate.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh /usr/local/bin/orchestrate.sh
+
+USER agent
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/auto-engineer"]
+CMD ["/auto-engineer", "--iteration", "1"]

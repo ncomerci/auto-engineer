@@ -83,4 +83,4 @@ If the issue was filed from auto-engineer's follow-up capture pass (step 8), inc
 - Invent new label values in-flight.
 - File speculative "nice-to-have" items with no concrete motivation — they clutter the backlog and degrade the auto-engineer candidate set.
 - Close, reassign, or relabel issues other than the one being filed.
-- Call `gh issue create`, `mcp__github__create_issue`, or any tracker-specific command directly — always go through the `{{PLAYBOOK_TRACKER}}` recipes so this skill stays tracker-agnostic.
+- Call `gh issue create` or any tracker-specific command directly — always go through the `{{PLAYBOOK_TRACKER}}` recipes so this skill stays tracker-agnostic.

@@ -8,7 +8,7 @@ argument-hint: [<target-path>]
 
 Configures the auto-engineer toolkit for a target project. Always runs from within this auto-engineer repo — it never copies itself. Reads templates from `templates/` (relative to this repo's root), substitutes `{{PLACEHOLDER}}` values, and writes the results into the target project.
 
-**Does not touch any pre-existing `.claude/` directory in the target.** Skills are written into `.claude/skills/` but only for skill names that don't already exist there. `settings.local.json` and `.claude/.gitignore` are only created if absent.
+**Does not touch any pre-existing `.cursor/` directory in the target.** Skills are written into `.cursor/skills/` but only for skill names that don't already exist there. `cli.json` and `.cursor/.gitignore` are only created if absent.
 
 ## When to invoke
 
@@ -65,12 +65,12 @@ Also scan for tech stack indicators by checking for file existence in `<target>/
 
 If a `Makefile` is present with standard targets, prefer `make <target>` over language-specific commands.
 
-### Existing `.claude/` detection
+### Existing `.cursor/` detection
 
-Check what already exists in `<target>/.claude/skills/`:
+Check what already exists in `<target>/.cursor/skills/`:
 
 ```sh
-ls <target>/.claude/skills/ 2>/dev/null
+ls <target>/.cursor/skills/ 2>/dev/null
 ```
 
 Note which skill names are already present — those will be skipped during write.
@@ -145,7 +145,7 @@ Present detected values and ask the user to confirm or override using `AskUserQu
 
 **Group D — Playbooks** (ask):
 - Should playbook files be created? (yes/no)
-- If yes: what path prefix within the target? (e.g. `docs/agent-playbooks`, `.claude/playbooks`)
+- If yes: what path prefix within the target? (e.g. `docs/agent-playbooks`, `.cursor/playbooks`)
 - If no: policy will be inlined into skills as concise summaries
 
 **Group E — Issue tracker** (ask):
@@ -190,7 +190,7 @@ PLAYBOOK_TEST       → path if playbooks enabled, else ""
 PLAYBOOK_PR_REVIEW  → path if playbooks enabled, else ""
 PLAYBOOK_PRIORITIZATION → path if playbooks enabled, else ""
 TRACKER             → "github" | "todo" (from Group E)
-PLAYBOOK_TRACKER    → always resolved (see below) — never empty, never under .claude/
+PLAYBOOK_TRACKER    → always resolved (see below) — never empty, never under .cursor/
 LABEL_TAXONOMY      → inline description of the project's label scheme
 PROJECT_IMAGE       → "<GITHUB_REPO>-auto-engineer"
 PROJECT_WORKDIR     → "/home/agent/work"
@@ -203,7 +203,7 @@ TOOLCHAIN_SETUP     → Dockerfile snippet installing the target project's langu
 
 ### `PLAYBOOK_TRACKER` — path resolution
 
-`tracker.md` is a required integration contract, not optional policy — it must always be written somewhere the skills can read on `main`, and **never** under `.claude/` (issue data is project data, not Claude config) nor under `.auto-engineer/` (that directory is the todo CLI's private worktree area and is gitignored on `main`).
+`tracker.md` is a required integration contract, not optional policy — it must always be written somewhere the skills can read on `main`, and **never** under `.cursor/` (issue data is project data, not agent CLI config) nor under `.auto-engineer/` (that directory is the todo CLI's private worktree area and is gitignored on `main`).
 
 | Condition | `PLAYBOOK_TRACKER` |
 |---|---|
@@ -245,27 +245,26 @@ Templates are read from this repo at `templates/`. All output paths are relative
 
 ### Skills
 
-Write only skill files that do **not** already exist in `<target>/.claude/skills/<name>/`:
+Write only skill files that do **not** already exist in `<target>/.cursor/skills/<name>/`:
 
 | Template | Output path |
 |---|---|
-| `templates/skills/auto-engineer/SKILL.md` | `<target>/.claude/skills/auto-engineer/SKILL.md` |
-| `templates/skills/auto-manager/SKILL.md` | `<target>/.claude/skills/auto-manager/SKILL.md` |
-| `templates/skills/sdlc/SKILL.md` | `<target>/.claude/skills/sdlc/SKILL.md` |
-| `templates/skills/file-issue/SKILL.md` | `<target>/.claude/skills/file-issue/SKILL.md` |
-| `templates/skills/wait-for-pr/SKILL.md` | `<target>/.claude/skills/wait-for-pr/SKILL.md` |
-| `templates/skills/usage/SKILL.md` | `<target>/.claude/skills/usage/SKILL.md` |
-| `templates/skills/usage/probe.sh` | `<target>/.claude/skills/usage/probe.sh` |
-| `templates/skills/context-reset/SKILL.md` | `<target>/.claude/skills/context-reset/SKILL.md` |
+| `templates/skills/auto-engineer/SKILL.md` | `<target>/.cursor/skills/auto-engineer/SKILL.md` |
+| `templates/skills/auto-manager/SKILL.md` | `<target>/.cursor/skills/auto-manager/SKILL.md` |
+| `templates/skills/sdlc/SKILL.md` | `<target>/.cursor/skills/sdlc/SKILL.md` |
+| `templates/skills/file-issue/SKILL.md` | `<target>/.cursor/skills/file-issue/SKILL.md` |
+| `templates/skills/wait-for-pr/SKILL.md` | `<target>/.cursor/skills/wait-for-pr/SKILL.md` |
+| `templates/skills/usage/SKILL.md` | `<target>/.cursor/skills/usage/SKILL.md` |
+| `templates/skills/context-reset/SKILL.md` | `<target>/.cursor/skills/context-reset/SKILL.md` |
 
 ### Config files (only if not already present)
 
 | Template | Output path |
 |---|---|
-| `templates/.gitignore` | `<target>/.claude/.gitignore` |
-| `templates/settings.local.json` | `<target>/.claude/settings.local.json` |
+| `templates/.cursor/.gitignore` | `<target>/.cursor/.gitignore` |
+| `templates/.cursor/cli.json` | `<target>/.cursor/cli.json` |
 
-If `settings.local.json` already exists, **do not overwrite** — note in the report that the user should manually add the permissions from `templates/settings.local.json` if needed.
+If `cli.json` already exists, **do not overwrite** — note in the report that the user should manually merge permissions from `templates/.cursor/cli.json` if needed.
 
 ### Docker infrastructure (always write, ask before overwriting)
 
@@ -276,6 +275,7 @@ If `settings.local.json` already exists, **do not overwrite** — note in the re
 | `templates/auto-engineer.sh` | `<target>/scripts/auto-engineer.sh` |
 | `templates/restart-loop.sh` | `<target>/scripts/restart-loop.sh` |
 | `templates/docker-entrypoint.sh` | `<target>/scripts/docker-entrypoint.sh` |
+| `templates/orchestrate.sh` | `<target>/scripts/orchestrate.sh` |
 
 If any of these already exist, ask the user before overwriting (a quick single prompt listing all conflicts).
 
@@ -284,20 +284,20 @@ When writing `Dockerfile`, substitute `{{TOOLCHAIN_SETUP}}` with the per-stack s
 After writing scripts:
 
 ```sh
-chmod +x <target>/scripts/sandbox.sh <target>/scripts/auto-engineer.sh <target>/scripts/restart-loop.sh <target>/scripts/docker-entrypoint.sh
+chmod +x <target>/scripts/sandbox.sh <target>/scripts/auto-engineer.sh <target>/scripts/restart-loop.sh <target>/scripts/docker-entrypoint.sh <target>/scripts/orchestrate.sh
 ```
 
-### Permissions to add to settings.local.json
+### Permissions to add to cli.json
 
-If `settings.local.json` was freshly created, add tech-stack-specific build permissions on top of the base set:
+If `cli.json` was freshly created, add tech-stack-specific build permissions on top of the base set:
 
 | Stack | Additional permissions |
 |---|---|
-| Rust | `"Bash(cargo build:*)"`, `"Bash(cargo test:*)"`, `"Bash(cargo fmt:*)"`, `"Bash(cargo clippy:*)"` |
-| Go | `"Bash(go build:*)"`, `"Bash(go test:*)"`, `"Bash(gofmt:*)"` |
-| Node | `"Bash(npm run:*)"`, `"Bash(npm test:*)"` |
-| Python | `"Bash(pytest:*)"`, `"Bash(ruff:*)"`, `"Bash(python -m build:*)"` |
-| Make | `"Bash(make:*)"` |
+| Rust | `"Shell(cargo build)"`, `"Shell(cargo test)"`, `"Shell(cargo fmt)"`, `"Shell(cargo clippy)"` |
+| Go | `"Shell(go build)"`, `"Shell(go test)"`, `"Shell(gofmt)"` |
+| Node | `"Shell(npm run)"`, `"Shell(npm test)"`, `"Shell(yarn)"` |
+| Python | `"Shell(pytest)"`, `"Shell(ruff)"`, `"Shell(python)"` |
+| Make | `"Shell(make)"` |
 
 ### Tracker playbook (always written)
 
@@ -374,8 +374,8 @@ Print a summary scoped to `<target>/`:
 Seeded auto-engineer into <target>:
 
   Skills written:
-    .claude/skills/auto-engineer/SKILL.md
-    .claude/skills/sdlc/SKILL.md
+    .cursor/skills/auto-engineer/SKILL.md
+    .cursor/skills/sdlc/SKILL.md
     ...
 
   Skills skipped (already existed):
@@ -385,11 +385,12 @@ Seeded auto-engineer into <target>:
     Dockerfile
     scripts/sandbox.sh
     scripts/auto-engineer.sh
+    scripts/orchestrate.sh
     scripts/docker-entrypoint.sh
 
   Config:
-    .claude/settings.local.json (created)  |or|  .claude/settings.local.json (already exists — see note below)
-    .claude/.gitignore
+    .cursor/cli.json (created)  |or|  .cursor/cli.json (already exists — see note below)
+    .cursor/.gitignore
 
   Tracker: <github | todo>
     <PLAYBOOK_TRACKER> (created)  |or|  <PLAYBOOK_TRACKER> (already exists — kept)
@@ -406,10 +407,10 @@ Seeded auto-engineer into <target>:
     <prefix>/pr-review.md
     <prefix>/prioritization.md
 
-[If settings.local.json was skipped:]
-  Note: .claude/settings.local.json already existed and was not modified.
+[If cli.json was skipped:]
+  Note: .cursor/cli.json already existed and was not modified.
   To allow auto-engineer to run without prompts, merge these permissions:
-    <path-to-this-repo>/templates/settings.local.json
+    <path-to-this-repo>/templates/.cursor/cli.json
 
 Next steps:
   1. cd <target> && review the written files
@@ -424,6 +425,7 @@ Next steps:
 
 - Copy this seed skill or its templates into the target project.
 - Overwrite existing playbook files — those are user-managed.
-- Overwrite a pre-existing `.claude/skills/<name>/` directory — skip it and note it in the report.
+- Overwrite a pre-existing `.cursor/skills/<name>/` directory — skip it and note it in the report.
+- Copy this seed skill or its templates into the target project (harness-only).
 - Create commits or push during seeding — the user should review and commit the seeded files.
 - Ask the user for the same information twice — collect everything in Phase 2 before writing.

@@ -171,7 +171,7 @@ Default posture: **full autonomy**. Spawn wave 1 immediately, respawn as deps un
 
 Every auto-engineer subagent call uses:
 
-- Use the **Task** tool with a general-purpose subagent (full tool surface).
+- `subagent_type: "general-purpose"` (the skill needs full tool surface).
 - `isolation: "worktree"` (mandatory — concurrent agents must not share a working tree).
 - `run_in_background: true` (don't block the orchestrator on any single agent).
 - `description`: short, e.g. `"Auto-engineer: rubric draft"`.

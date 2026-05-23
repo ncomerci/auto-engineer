@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(git)",
+      "Shell(gh)",
+      "Shell(cargo)",
+      "Shell(npm)",
+      "Shell(yarn)",
+      "Shell(pytest)",
+      "Shell(ruff)",
+      "Shell(python)",
+      "Shell(make)",
+      "Mcp(github:*)",
+      "WebFetch(github.com)",
+      "WebFetch(patch-diff.githubusercontent.com)"
+    ]
+  },
+  "approvalMode": "unrestricted",
+  "sandbox": {
+    "mode": "disabled"
+  },
+  "attribution": {
+    "attributeCommitsToAgent": true,
+    "attributePRsToAgent": true
+  }
+}

@@ -1,6 +1,6 @@
 # auto-engineer
 
-A general-purpose Claude Code toolkit for autonomous, closed-loop software delivery. Run it from this repo to seed any project with the skills and Docker infrastructure Claude needs to pick issues, implement changes, push PRs, respond to CI and review feedback, and merge — without human intervention between steps.
+A general-purpose **Cursor Agent CLI** toolkit for autonomous, closed-loop software delivery. Run it from this repo to seed any project with the skills and Docker infrastructure needed to pick issues, implement changes, push PRs, respond to CI and review feedback, and merge — without human intervention between steps.
 
 Inspired by auto-researcher by @karpathy.
 
@@ -17,28 +17,37 @@ Check out [vibix](https://github.com/dburkart/vibix), an autonomously developed 
 |---|---|
 | `/seed` | One-time setup: asks for a target project path, detects its stack, writes customized skills and Docker files into it |
 | `/auto-engineer` | The main loop: pick → plan → implement → PR → wait → merge → repeat *(written into target by `/seed`)* |
-| `/auto-manager` | Epic orchestrator: scope a fuzzy topic or parent issue, file sub-issues, plan workstreams, and spawn parallel `/auto-engineer` subagents to ship the whole epic *(written into target)* |
+| `/auto-manager` | Epic orchestrator: scope a fuzzy topic, file sub-issues, spawn parallel workstreams *(written into target)* |
 | `/sdlc` | Branch, commit, and PR conventions *(written into target)* |
-| `/file-issue` | File GitHub issues with correct labels *(written into target)* |
+| `/file-issue` | File issues with correct labels *(written into target)* |
 | `/wait-for-pr` | Manual PR-wait loop with CI polling and auto-fix *(written into target)* |
-| `/usage` | Session quota check used by the auto-engineer quota gate *(written into target)* |
+| `/usage` | Best-effort quota gate for auto-engineer *(written into target)* |
 
-Plus Docker infrastructure (`scripts/sandbox.sh`, `Dockerfile`) so the loop runs safely with `--dangerously-skip-permissions` in an isolated container.
+Plus Docker infrastructure (`scripts/sandbox.sh`, `scripts/orchestrate.sh`, `Dockerfile`) so the loop runs headless with `agent -p --force` in an isolated container.
+
+### How the loop runs
+
+`ScheduleWakeup` (Claude Code) is replaced by **[`scripts/orchestrate.sh`](scripts/orchestrate.sh)**:
+
+1. Run `agent -p` with `/auto-engineer …`
+2. The skill ends with `AE_NEXT {"sleep":…,"prompt":…}` or `AE_STOP {"reason":…}`
+3. The script sleeps and repeats (or exits)
 
 ## Seeding a project
 
-Open Claude Code in this repo and run:
+Open Cursor Agent CLI in this repo and run:
 
 ```
 /seed
 ```
 
-Claude will ask for the path to your target project, then:
+The agent will ask for the path to your target project, then:
+
 1. Auto-detect the tech stack and GitHub configuration
 2. Ask a few questions about labels and playbooks
-3. Write customized skills, Docker files, and settings directly into the target project
+3. Write customized skills under `.cursor/skills/`, `.cursor/cli.json`, and Docker scripts
 
-The seed skill never touches any pre-existing `.claude/` content in the target — it only creates files that don't already exist.
+The seed skill never overwrites existing `.cursor/skills/<name>/` directories.
 
 ## After seeding
 
@@ -48,18 +57,24 @@ In the target project, review and commit the generated files, then:
 # Start the autonomous loop in a container
 scripts/auto-engineer.sh
 
-# Run any skill or prompt in the container
-scripts/sandbox.sh /some-skill
-scripts/sandbox.sh -- /auto-engineer --iteration 1
+# One orchestrator tick (e.g. a single skill)
+scripts/sandbox.sh /wait-for-pr
+
+# Single agent invocation (no AE_NEXT contract)
+scripts/sandbox.sh --direct /seed
 ```
 
 ### Docker prerequisites
 
 - Docker installed and running
-- Host Claude Code login (`~/.claude` + `~/.claude.json`)
+- `CURSOR_API_KEY` ([Cursor Dashboard → Integrations](https://cursor.com/dashboard/integrations))
 - `GITHUB_TOKEN` in your environment or in `.env` at the project root
 
-The container mounts your host `~/.claude` for auth reuse. The base `Dockerfile` has no language toolchain — add yours in the toolchain section before building.
+The container clones the target repo into `/home/agent/work` and mounts the project's `.cursor/` directory when present.
+
+## Migrating from Claude Code
+
+Projects seeded with the older Claude-based toolkit have skills under `.claude/skills/`. Re-run `/seed` from this repo (it writes to `.cursor/skills/` only for missing names), or copy skills manually and add `scripts/orchestrate.sh` plus `.cursor/cli.json` from the templates.
 
 ## Playbooks
 

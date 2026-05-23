@@ -8,7 +8,7 @@ argument-hint: [<target-project-path>]
 
 Two-way sync between a seeded project and this auto-engineer repo's templates. Detects drift in skills, Dockerfile, and scripts; lets you resolve each divergence interactively.
 
-This is a harness-internal development tool. It lives only in `.claude/skills/sync/` — the `seed` skill never copies it to target projects.
+This is a harness-internal development tool. It lives only in `.cursor/skills/sync/` — the `seed` skill never copies it to target projects.
 
 ## When to invoke
 
@@ -25,7 +25,7 @@ If not provided as an argument, ask:
 
 Resolve to an absolute path. Verify the directory exists. Abort with a clear error if not found.
 
-All reads and writes to the target project use `<target>/` as the root. The auto-engineer repo root (`<ae-repo>`) is the directory that contains both `.claude/` and `templates/` as direct children — from this skill file's location at `.claude/skills/sync/SKILL.md`, that is three levels up.
+All reads and writes to the target project use `<target>/` as the root. The auto-engineer repo root (`<ae-repo>`) is the directory that contains both `.cursor/` and `templates/` as direct children — from this skill file's location at `.cursor/skills/sync/SKILL.md`, that is three levels up.
 
 ---
 
@@ -36,15 +36,15 @@ Sync covers three artifact groups:
 ### Group A — Skills
 
 - **Template side:** subdirectories under `<ae-repo>/templates/skills/` that contain a `SKILL.md`.
-- **Target side:** subdirectories under `<target>/.claude/skills/` that contain a `SKILL.md`.
+- **Target side:** subdirectories under `<target>/.cursor/skills/` that contain a `SKILL.md`.
 
 Classify each skill name:
 
 | Classification | Condition |
 |---|---|
-| **Paired** | Present in both `templates/skills/<name>/` and `<target>/.claude/skills/<name>/` |
+| **Paired** | Present in both `templates/skills/<name>/` and `<target>/.cursor/skills/<name>/` |
 | **Template-only** | In `templates/skills/` but not in target (never seeded, or intentionally absent) |
-| **Target-only** | In `<target>/.claude/skills/` but no template counterpart (e.g. `seed`, `sync`, new user skills) |
+| **Target-only** | In `<target>/.cursor/skills/` but no template counterpart (e.g. `seed`, `sync`, new user skills) |
 
 All three groups participate in the interactive resolution loop:
 - **Paired** skills: full pull / push / diff / skip menu.
@@ -71,6 +71,7 @@ Compare the two. Note: the template contains `{{TOOLCHAIN_SETUP}}` which seed re
 | `<ae-repo>/templates/auto-engineer.sh` | `<target>/scripts/auto-engineer.sh` |
 | `<ae-repo>/templates/restart-loop.sh` | `<target>/scripts/restart-loop.sh` |
 | `<ae-repo>/templates/docker-entrypoint.sh` | `<target>/scripts/docker-entrypoint.sh` |
+| `<ae-repo>/templates/orchestrate.sh` | `<target>/scripts/orchestrate.sh` |
 | `<ae-repo>/templates/issues.sh` | `<target>/scripts/issues` *(todo tracker only)* |
 
 For each script, check whether the target file exists. If not, classify as "template-only" and offer to pull it in. Skip the `issues` row when the target's tracker playbook is the GitHub variant — `scripts/issues` only exists under `TRACKER=todo`.
@@ -176,11 +177,11 @@ Only proceed with the push if the user confirms.
 
 Use the **Read** and **Write** tools only — no shell copy commands.
 
-- **Pull (skill):** Read `<ae-repo>/templates/skills/<name>/SKILL.md`, Write to `<target>/.claude/skills/<name>/SKILL.md`.
+- **Pull (skill):** Read `<ae-repo>/templates/skills/<name>/SKILL.md`, Write to `<target>/.cursor/skills/<name>/SKILL.md`.
 - **Pull (Dockerfile):** Read `<ae-repo>/templates/Dockerfile`, Write to `<target>/Dockerfile`.
 - **Pull (script):** Read `<ae-repo>/templates/<script>.sh`, Write to `<target>/scripts/<script>.sh`.
-- **Push (paired skill):** Read `<target>/.claude/skills/<name>/SKILL.md`, Write to `<ae-repo>/templates/skills/<name>/SKILL.md`.
-- **Push (target-only skill):** Read `<target>/.claude/skills/<name>/SKILL.md`, Write to `<ae-repo>/templates/skills/<name>/SKILL.md` (creates new template entry).
+- **Push (paired skill):** Read `<target>/.cursor/skills/<name>/SKILL.md`, Write to `<ae-repo>/templates/skills/<name>/SKILL.md`.
+- **Push (target-only skill):** Read `<target>/.cursor/skills/<name>/SKILL.md`, Write to `<ae-repo>/templates/skills/<name>/SKILL.md` (creates new template entry).
 - **Push (Dockerfile):** Read `<target>/Dockerfile`, Write to `<ae-repo>/templates/Dockerfile`.
 - **Push (script):** Read `<target>/scripts/<script>.sh`, Write to `<ae-repo>/templates/<script>.sh`.
 
